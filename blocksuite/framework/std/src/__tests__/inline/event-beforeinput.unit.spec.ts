@@ -142,3 +142,105 @@ test('beforeinput ignores un-resolvable target range and still applies input', a
     await teardownInlineEditor(ctx);
   }
 });
+
+test('beforeinput deletes single code point for Thai combining mark on Backspace', async () => {
+  const ctx = await setupInlineEditor('ดี');
+  try {
+    const range = ctx.editor.toDomRange({ index: 2, length: 0 });
+    expect(range).not.toBeNull();
+    setNativeSelection(range!);
+
+    const preventDefault = vi.fn();
+    const textNode = range!.startContainer;
+    const event = {
+      inputType: 'deleteContentBackward',
+      data: null,
+      dataTransfer: null,
+      preventDefault,
+      stopPropagation: vi.fn(),
+      getTargetRanges: () => [
+        {
+          startContainer: textNode,
+          startOffset: 0,
+          endContainer: textNode,
+          endOffset: 2,
+        },
+      ],
+    } as unknown as InputEvent;
+
+    await (ctx.editor.eventService as any)._onBeforeInput(event);
+
+    expect(preventDefault).toHaveBeenCalledOnce();
+    expect(ctx.editor.yTextString).toBe('ด');
+  } finally {
+    await teardownInlineEditor(ctx);
+  }
+});
+
+test('beforeinput deletes Thai consonant normally when preceded by non-combining character', async () => {
+  const ctx = await setupInlineEditor('ด');
+  try {
+    const range = ctx.editor.toDomRange({ index: 1, length: 0 });
+    expect(range).not.toBeNull();
+    setNativeSelection(range!);
+
+    const preventDefault = vi.fn();
+    const textNode = range!.startContainer;
+    const event = {
+      inputType: 'deleteContentBackward',
+      data: null,
+      dataTransfer: null,
+      preventDefault,
+      stopPropagation: vi.fn(),
+      getTargetRanges: () => [
+        {
+          startContainer: textNode,
+          startOffset: 0,
+          endContainer: textNode,
+          endOffset: 1,
+        },
+      ],
+    } as unknown as InputEvent;
+
+    await (ctx.editor.eventService as any)._onBeforeInput(event);
+
+    expect(preventDefault).toHaveBeenCalledOnce();
+    expect(ctx.editor.yTextString).toBe('');
+  } finally {
+    await teardownInlineEditor(ctx);
+  }
+});
+
+test('beforeinput deletes multi-combining Thai marks step by step', async () => {
+  const ctx = await setupInlineEditor('ปิ๊');
+  try {
+    const range = ctx.editor.toDomRange({ index: 3, length: 0 });
+    expect(range).not.toBeNull();
+    setNativeSelection(range!);
+
+    const preventDefault = vi.fn();
+    const textNode = range!.startContainer;
+    const event = {
+      inputType: 'deleteContentBackward',
+      data: null,
+      dataTransfer: null,
+      preventDefault,
+      stopPropagation: vi.fn(),
+      getTargetRanges: () => [
+        {
+          startContainer: textNode,
+          startOffset: 0,
+          endContainer: textNode,
+          endOffset: 3,
+        },
+      ],
+    } as unknown as InputEvent;
+
+    await (ctx.editor.eventService as any)._onBeforeInput(event);
+
+    expect(preventDefault).toHaveBeenCalledOnce();
+    expect(ctx.editor.yTextString).toBe('ปิ');
+  } finally {
+    await teardownInlineEditor(ctx);
+  }
+});

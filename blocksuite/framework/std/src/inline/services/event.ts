@@ -151,6 +151,8 @@ export class EventService<TextAttributes extends BaseTextAttributes> {
       ifHandleTargetRange = false;
     }
 
+    const isCollapsedSelection = inlineRange ? inlineRange.length === 0 : true;
+
     if (ifHandleTargetRange) {
       const targetRanges = event.getTargetRanges();
       if (targetRanges.length > 0) {
@@ -170,6 +172,17 @@ export class EventService<TextAttributes extends BaseTextAttributes> {
       }
     }
     if (!inlineRange) return;
+
+    if (event.inputType === 'deleteContentBackward' && isCollapsedSelection) {
+      const endIndex = inlineRange.index + inlineRange.length;
+      const textBeforeCursor = this.editor.yText.toString().slice(0, endIndex);
+      if (/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]$/.test(textBeforeCursor)) {
+        inlineRange = {
+          index: endIndex - 1,
+          length: 1,
+        };
+      }
+    }
 
     if (IS_ANDROID) {
       this.editor.rerenderWholeEditor();
